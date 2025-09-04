@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diario de Amor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4.1.0/turn.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+    body {
+        background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        font-family: "Georgia", serif;
+        transition: background 0.5s, color 0.5s;
+        overflow: hidden;
+    }
+
+    #book-container {
+        position: relative;
+        width: 90vw;
+        height: 80vh;
+        max-width: 800px;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    #book {
+        width: 100%;
+        height: 100%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        overflow-y: auto;
+        position: relative;
+    }
+
+    .page {
+        background: #fff url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+        border: 1px solid #d4a5a5;
+        padding: 20px;
+        text-align: center;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #4b2e2e;
+        position: relative;
+        overflow-y: auto;
+        transition: background 0.5s, color 0.5s;
+        box-sizing: border-box;
+        min-height: 300px;
+        max-height: 70vh;
+    }
+
+    .page h2 {
+        font-family: "Dancing Script", cursive;
+        font-size: 24px;
+        color: #c2185b;
+    }
+
+    .page img {
+        max-width: 100%;
+        max-height: 60%;
+        border-radius: 12px;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        margin-top: 10px;
+    }
+
+    /* Manuscrito */
+
+    .letter {
+        font-family: "Dancing Script", cursive;
+        font-size: 20px;
+        font-style: italic;
+        border-left: 3px solid #f48fb1;
+        padding-left: 15px;
+        white-space: pre-wrap;
+        text-align: left;
+        margin-bottom: 10px;
+    }
+
+    /* Fecha */
+    .date {
+        font-size: 14px;
+        font-style: italic;
+        text-align: right;
+        margin-top: 10px;
+        color: #666;
+    }
+
+    .caption {
+        font-size: 14px;
+        font-style: italic;
+        color: #444;
+        margin-top: 5px;
+    }
+
+    /*Controles*/
+    .controls {
+        position: absolute;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 0 20px;
+    }
+
+    .btn {
+        background: #f48fb1;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .btn:hover {
+        background: #ec407a;
+    }
+
+    /*Editor*/
+    .editor {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    textarea {
+        width: 100%;
+        height: 120px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        font-family: "Dancing Script", cursive;
+        font-size: 18px;
+        font-style: italic;
+        box-sizing: border-box;
+    }
+
+    input[type="file"], input[type="text"] {
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid #bbb;
+        font-size: 14px;
+        box-sizing: border-box;
+        width: 100%;
+    }
+
+    /*Modo oscuro*/
+    body.dark {
+        background: linear-gradient(135deg, #1c1c1c, #2c2c2c);
+        color: #eee;
+    }
+
+    body.dark .page {
+        background: #2b2b2b;
+        color: #f1f1f1;
+        border: 1px solid #555;
+    }
+
+    body.dark .letter {
+        border-left: 3px solid #ec407a;
+        color: #f5f5f5;
+    }
+
+    body.dark .date,
+    body.dark .caption {
+        color: #aaa;
+    }
+
+    body.dark .btn {
+        background: #8e24aa;
+    }
+
+    body.dark .btn:hover {
+        background: #ab47bc;
+    }
+
+    .footer {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 14px;
+        color: #666;
+    }
+
+    @media (max-width: 600px) {
+        .page {
+            font-size: 14px;
+            padding: 15px;
+        }
+
+        .page h2 {
+            font-size: 20px;
+        }
+
+        .btn {
+            min-width: 100px;
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        #book-container {
+            height: 60vh;
+        }
+
+        .main-controls {
+            flex-direction: column;
+        }
+    }
+</style>
+</head>
+<body>
+    <div id="menu-btn" style="position:absolute;top:20px;left:20px;z-index:10;cursor:pointer;">
+            <div style="width:30px;height:4px;background:#c2185b;margin:6px 0;"></div>
+            <div style="width:30px;height:4px;background:#c2185b;margin:6px 0;"></div>
+            <div style="width:30px;height:4px;background:#c2185b;margin:6px 0;"></div>
+        </div>
+        <!-- Removed duplicate side-menu and book-container -->
+    </div>
+    <div id="side-menu" style="position:fixed;top:0;left:-250px;width:250px;height:100vh;background:#fff;box-shadow:2px 0 10px rgba(0,0,0,0.2);z-index:20;transition:left 0.3s;overflow-y:auto;">
+        <h3 style="padding:20px 10px 10px 20px;color:#c2185b;">Entradas</h3>
+        <ul id="entries-list" style="list-style:none;padding:0 20px 20px 20px;margin:0;"></ul>
+    </div>
+    <div id="book-container">
+        <div id="book">
+            <div class="header">
+                <h2>Nuestro Diario</h2>
+                <p>Un lugar para guardar nuestros recuerdos y escribir juntos nuestra historia de Amor</p>
+            </div>
+            <div class="controls">
+                <button class="btn" id="btn-prev">Atrás</button>
+                <button class="btn" id="add-btn">Nueva Página</button>
+                <button class="btn" id="dark-mode-btn">Modo Oscuro</button>
+                <button class="btn" id="export-btn">Exportar a PDF</button>
+                <button class="btn" id="btn-next">Siguiente</button>
+            </div>
+            <!-- Páginas dinámicas -->
+        </div>
+    </div>
+<script>
+// Datos iniciales
+let pages = [
+    {
+        type: 'text',
+        content: 'Querido amor, cada día es un regalo contigo. Gracias por ser mi compañero de vida y mi mejor amigo.',
+        date: '04/09/2025 14:41',
+        title: 'Primera Carta'
+    },
+    {
+        type: 'image',
+        src: 'WhatsApp Image 2025-09-04 at 14.55.00.jpeg',
+        caption: 'Nosotros en el parque que tanto te gustó :b',
+        title: 'Foto en el parque'
+    }
+];
+let currentPage = 0;
+
+function renderPages() {
+    const book = document.getElementById('book');
+    // Elimina páginas previas
+    Array.from(book.querySelectorAll('.page')).forEach(e => e.remove());
+    if (pages.length === 0) return;
+    const page = pages[currentPage];
+    let pageDiv = document.createElement('div');
+    pageDiv.className = 'page';
+
+    if (page.type === 'text') {
+        pageDiv.innerHTML = `
+            <div class="letter">${page.content}</div>
+            <div class="date">Escrito el: ${page.date}</div>
+            <button class="btn" id="edit-btn">Editar</button>
+        `;
+    } else if (page.type === 'image') {
+        pageDiv.innerHTML = `
+            <img src="${page.src}" alt="${page.caption}">
+            <div class="caption">${page.caption||''}</div>
+            <button class="btn" id="edit-btn">Editar</button>
+        `;
+    } else if (page.type === 'editor') {
+        pageDiv.innerHTML = `
+            <div class="editor">
+                <input type="text" id="title-input" placeholder="Título de la entrada" value="${page.title||''}">
+                <textarea id="content-input" placeholder="Escribe tu entrada aquí...">${page.content||''}</textarea>
+                <input type="file" id="img-input" accept="image/*">
+                <img id="preview-img" style="max-width:100%;margin-top:10px;display:none;">
+                <button class="btn" id="save-page-btn">Guardar</button>
+            </div>
+        `;
+        setTimeout(() => {
+            const imgInput = document.getElementById('img-input');
+            const previewImg = document.getElementById('preview-img');
+            imgInput.onchange = function() {
+                if (imgInput.files && imgInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImg.src = e.target.result;
+                        previewImg.style.display = 'block';
+                    };
+                    reader.readAsDataURL(imgInput.files[0]);
+                }
+            };
+            document.getElementById('save-page-btn').onclick = function() {
+                const title = document.getElementById('title-input').value;
+                const content = document.getElementById('content-input').value;
+                if (imgInput.files && imgInput.files[0]) {
+                    const file = imgInput.files[0];
+                    const filePath = `images/${Date.now()}_${file.name}`;
+                    window.supabase.storage.from('diario').upload(filePath, file).then(({ data, error }) => {
+                        let url = '';
+                        if (!error) {
+                            const { data: publicUrl } = window.supabase.storage.from('diario').getPublicUrl(filePath);
+                            url = publicUrl.publicUrl;
+                        }
+                        pages[currentPage] = {
+                            type: 'image',
+                            src: url,
+                            caption: title,
+                            title: title
+                        };
+                        renderPages();
+                        updateMenu();
+                        saveToSupabase();
+                    });
+                } else {
+                    pages[currentPage] = {
+                        type: 'text',
+                        content: content,
+                        date: new Date().toLocaleString(),
+                        title: title
+                    };
+                    renderPages();
+                    updateMenu();
+                    saveToSupabase();
+                }
+            };
+        }, 100);
+    }
+
+    // Botón editar: convierte la página actual en modo editor
+    if (page.type !== 'editor') {
+        setTimeout(() => {
+            const editBtn = document.getElementById('edit-btn');
+            if (editBtn) {
+                editBtn.onclick = function() {
+                    if (page.type === 'text') {
+                        pages[currentPage] = {
+                            type: 'editor',
+                            title: page.title || '',
+                            content: page.content || '',
+                        };
+                    } else if (page.type === 'image') {
+                        pages[currentPage] = {
+                            type: 'editor',
+                            title: page.title || page.caption || '',
+                            content: '',
+                        };
+                    }
+                    renderPages();
+                };
+            }
+        }, 100);
+    }
+
+    // Inserta la página después de los controles
+    const controls = book.querySelector('.controls');
+    if (controls && controls.nextSibling) {
+        book.insertBefore(pageDiv, controls.nextSibling);
+    } else {
+        book.appendChild(pageDiv);
+    }
+}
+
+// Guardar en Supabase (debe estar fuera de cualquier función)
+// ...existing code...
+
+// ...existing code...
+
+// Guardar en Supabase (debe estar fuera de cualquier función)
+function saveToSupabase() {
+    window.supabase.from('diario').upsert({id: 1, pages});
+}
+        pageDiv.innerHTML = `<div class="editor">
+            <input type="text" id="title-input" placeholder="Título de la entrada" value="${page.title||''}">
+            <textarea id="content-input" placeholder="Escribe tu entrada aquí...">${page.content||''}</textarea>
+            <input type="file" id="img-input" accept="image/*">
+            <img id="preview-img" style="max-width:100%;margin-top:10px;display:none;">
+            <button class="btn" id="save-page-btn">Guardar</button>
+        </div>`;
+        setTimeout(() => {
+            const imgInput = document.getElementById('img-input');
+            const previewImg = document.getElementById('preview-img');
+            imgInput.onchange = function() {
+                if (imgInput.files && imgInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImg.src = e.target.result;
+                        previewImg.style.display = 'block';
+                    };
+                    reader.readAsDataURL(imgInput.files[0]);
+                }
+            };
+            document.getElementById('save-page-btn').onclick = function() {
+                const title = document.getElementById('title-input').value;
+                const content = document.getElementById('content-input').value;
+                if (imgInput.files && imgInput.files[0]) {
+                    const file = imgInput.files[0];
+                    const filePath = `images/${Date.now()}_${file.name}`;
+                    window.supabase.storage.from('diario').upload(filePath, file).then(({ data, error }) => {
+                        let url = '';
+                        if (!error) {
+                            const { data: publicUrl } = window.supabase.storage.from('diario').getPublicUrl(filePath);
+                            url = publicUrl.publicUrl;
+                        }
+                        pages[currentPage] = {
+                            type: 'image',
+                            src: url,
+                            caption: title,
+                            title: title
+                        };
+                        renderPages();
+                        updateMenu();
+                        saveToSupabase();
+                    });
+                } else {
+                    pages[currentPage] = {
+                        type: 'text',
+                        content: content,
+                        date: new Date().toLocaleString(),
+                        title: title
+                    };
+                    renderPages();
+                    updateMenu();
+                    saveToSupabase();
+                }
+// Guardar en Supabase
+function saveToSupabase() {
+    window.supabase.from('diario').upsert({id: 1, pages});
+}
+            };
+        }, 100);
+    
+    // Inserta la página antes del final del book (después de header y controles)
+    // Busca el último elemento (controles) y lo inserta después
+    const controls = book.querySelector('.controls');
+    if (controls && controls.nextSibling) {
+        book.insertBefore(pageDiv, controls.nextSibling);
+    } else {
+        book.appendChild(pageDiv);
+    }
+
+document.getElementById('btn-next').onclick = function() {
+    if (currentPage < pages.length-1) {
+        currentPage++;
+        renderPages();
+    }
+};
+document.getElementById('add-btn').onclick = function() {
+    pages.push({type:'editor', title:'', content:''});
+    currentPage = pages.length-1;
+    renderPages();
+    updateMenu();
+};
+document.getElementById('dark-mode-btn').onclick = function() {
+    document.body.classList.toggle('dark');
+};
+document.getElementById('export-btn').onclick = function() {
+    html2pdf().from(document.getElementById('book')).save('diario.pdf');
+};
+
+// Menú hamburguesa
+const menuBtn = document.getElementById('menu-btn');
+const sideMenu = document.getElementById('side-menu');
+let menuOpen = false;
+menuBtn.onclick = function() {
+    menuOpen = !menuOpen;
+    sideMenu.style.left = menuOpen ? '0' : '-250px';
+};
+// Cerrar menú al hacer click fuera
+document.body.addEventListener('click', function(e) {
+    if (menuOpen && !sideMenu.contains(e.target) && e.target !== menuBtn && !menuBtn.contains(e.target)) {
+        sideMenu.style.left = '-250px';
+        menuOpen = false;
+    }
+});
+
+// Inicializar
+async function loadFromSupabase() {
+    const { data, error } = await window.supabase.from('diario').select('pages').eq('id', 1).single();
+    if (data && data.pages) {
+        pages = data.pages;
+        if (currentPage >= pages.length) currentPage = pages.length-1;
+        renderPages();
+        updateMenu();
+    }
+}
+
+loadFromSupabase();
+</script>
+</body>
+</html>
